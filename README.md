@@ -1,4 +1,6 @@
-# Welcome to the Microsoft/Dion Codebase
+# Welcome to the Microsoft/Dion Codebase (CPU/Mac OS version)
+
+This is a fork of the Microsoft/Dion codebase that runs on CPU/Mac OS. (It doesn't use Triton if not available, and it uses CPU-based implementations of the optimizers.)
 
 This repository provides efficient implementations of orthonormal optimizers for distributed ML training.
 You can find the following optimizers:
