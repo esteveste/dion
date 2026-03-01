@@ -2,6 +2,8 @@
 
 This is a fork of the Microsoft/Dion codebase that runs on CPU/Mac OS. (It doesn't use Triton if not available, and it uses CPU-based implementations of the optimizers.)
 
+Run tests with: `pytest tests/ -v`
+
 This repository provides efficient implementations of orthonormal optimizers for distributed ML training.
 You can find the following optimizers:
 * [Muon](https://kellerjordan.github.io/posts/muon/)
