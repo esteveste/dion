@@ -18,12 +18,15 @@ import argparse
 from pathlib import Path
 from typing import Iterable, Tuple
 import torch
-import triton.testing as tt
+from dion.newton_schulz import zeropower_via_newtonschulz5
 
-from dion.newton_schulz_triton import (
-    newton_schulz_triton,
-    zeropower_via_newtonschulz5,
-)
+try:
+    from dion.newton_schulz_triton import newton_schulz_triton
+    import triton.testing as tt
+    HAS_TRITON = True
+except ImportError:
+    HAS_TRITON = False
+    tt = None
 
 # -----------------------------------------------------------------------------
 # Helpers
@@ -61,23 +64,31 @@ def bench_once(
     G = torch.randn(batch_size, m, n, dtype=dtype, device="cuda")
     # reference
     t_ref = tt.do_bench(lambda: zeropower_via_newtonschulz5(G))
-    # triton
-    # start with a warmup run
-    newton_schulz_triton(G)
-    # then measure the actual time
-    t_tri = tt.do_bench(lambda: newton_schulz_triton(G))
-
     flops = gemm_cost(m, n)
     ref_tflops = tflops(t_ref, flops, steps, batch_size)
-    tri_tflops = tflops(t_tri, flops, steps, batch_size)
 
-    print(
-        f"[{batch_size=}  {m=}, {n=}]  "
-        f"torch {pretty_time(t_ref)}  {ref_tflops:5.2f} TFLOPS  |  "
-        f"triton {pretty_time(t_tri)}  {tri_tflops:5.2f} TFLOPS  "
-        f"(speed-up x{t_ref/t_tri:4.2f})"
-    )
-    return t_ref, t_tri
+    if HAS_TRITON:
+        # triton
+        # start with a warmup run
+        newton_schulz_triton(G)
+        # then measure the actual time
+        t_tri = tt.do_bench(lambda: newton_schulz_triton(G))
+        tri_tflops = tflops(t_tri, flops, steps, batch_size)
+
+        print(
+            f"[{batch_size=}  {m=}, {n=}]  "
+            f"torch {pretty_time(t_ref)}  {ref_tflops:5.2f} TFLOPS  |  "
+            f"triton {pretty_time(t_tri)}  {tri_tflops:5.2f} TFLOPS  "
+            f"(speed-up x{t_ref/t_tri:4.2f})"
+        )
+        return t_ref, t_tri
+    else:
+        print(
+            f"[{batch_size=}  {m=}, {n=}]  "
+            f"torch {pretty_time(t_ref)}  {ref_tflops:5.2f} TFLOPS  "
+            f"(triton not available)"
+        )
+        return t_ref, t_ref
 
 
 def bench_grid(

@@ -8,7 +8,14 @@ from torch.distributed.tensor import DeviceMesh, DTensor
 from torch.optim.optimizer import Optimizer, ParamsT
 from typing import Callable, Generator, List, Optional, Tuple, Union
 
-from .newton_schulz_triton import newton_schulz_triton
+from .newton_schulz import zeropower_via_newtonschulz5
+
+try:
+    from .newton_schulz_triton import newton_schulz_triton
+    HAS_TRITON = True
+except ImportError:
+    HAS_TRITON = False
+
 from .opt_utils import (
     AsyncRuntime,
     AsyncTask,
@@ -142,6 +149,8 @@ class NorMuon(Optimizer):
                 )
             self._newton_schulz_func = newton_schulz_func
         elif use_triton:
+            if not HAS_TRITON:
+                raise RuntimeError("use_triton=True but Triton is not available.")
             self._newton_schulz_func = newton_schulz_triton
         else:
             self._newton_schulz_func = zeropower_via_newtonschulz5

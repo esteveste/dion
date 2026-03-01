@@ -2,12 +2,17 @@
 import pytest
 import torch
 
-from dion.newton_schulz_triton import (
-    ns_line_1,
-    ns_line_2,
-    newton_schulz_triton,
-    zeropower_via_newtonschulz5,
-)
+from dion.newton_schulz import zeropower_via_newtonschulz5
+
+try:
+    from dion.newton_schulz_triton import (
+        ns_line_1,
+        ns_line_2,
+        newton_schulz_triton,
+    )
+    HAS_TRITON = True
+except ImportError:
+    HAS_TRITON = False
 
 # -----------------------------------------------------------------------------#
 # General settings
@@ -36,7 +41,7 @@ def _assert_close(result: torch.Tensor, correct: torch.Tensor, *, tol: float = 5
     ), f"max-abs-diff {torch.abs(result - correct).max().item():.3e} > {tol}"
 
 
-@pytest.mark.skipif(not CUDA_AVAILABLE, reason="CUDA device required")
+@pytest.mark.skipif(not CUDA_AVAILABLE or not HAS_TRITON, reason="CUDA and Triton required")
 @pytest.mark.parametrize("m,n", [(256, 256), (256, 1024)])
 @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
 def test_ns_line_1(m: int, n: int, dtype: torch.dtype):
@@ -48,7 +53,7 @@ def test_ns_line_1(m: int, n: int, dtype: torch.dtype):
     _assert_close(ns_line_1(A_batched), A_batched @ A_batched.mT)
 
 
-@pytest.mark.skipif(not CUDA_AVAILABLE, reason="CUDA device required")
+@pytest.mark.skipif(not CUDA_AVAILABLE or not HAS_TRITON, reason="CUDA and Triton required")
 @pytest.mark.parametrize("m", [256])
 @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
 def test_ns_line_2(m: int, dtype: torch.dtype):
@@ -66,7 +71,7 @@ def test_ns_line_2(m: int, dtype: torch.dtype):
     _assert_close(ns_line_2(A_batched, alpha=alpha, beta=beta), correct_batched)
 
 
-@pytest.mark.skipif(not CUDA_AVAILABLE, reason="CUDA device required")
+@pytest.mark.skipif(not CUDA_AVAILABLE or not HAS_TRITON, reason="CUDA and Triton required")
 @pytest.mark.parametrize("m,n", [(256, 256), (256, 1024)])
 @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
 def test_newton_schulz_triton(m: int, n: int, dtype: torch.dtype):
